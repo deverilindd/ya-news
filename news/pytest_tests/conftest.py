@@ -1,9 +1,11 @@
 # conftest.py
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytest
 
-from django.test.client import Client
 from django.urls import reverse
+from django.utils import timezone
+from django.conf import settings
+from django.test.client import Client
 
 from news.models import News, Comment
 
@@ -56,3 +58,42 @@ def comment(news, author):
 @pytest.fixture
 def id_for_comment(comment):
     return (comment.id,)
+
+
+@pytest.fixture
+def news_base():
+    today = timezone.now()
+    all_news = [
+        News(
+            title=f'Новость {index}',
+            text='Просто текст.',
+            date=today - timedelta(days=index)
+        )
+        for index in range(settings.NEWS_COUNT_ON_HOME_PAGE + 1)
+    ]
+    News.objects.bulk_create(all_news)
+    return News.objects.all()
+
+
+@pytest.fixture
+def comment_base(news, author):
+    now = timezone.now()
+    all_comments = [
+        Comment(
+            news=news,
+            author=author,
+            text=f'Текст {i}',
+            created=now + timedelta(days=i)
+        )
+        for i in range(10)
+    ]
+    Comment.objects.bulk_create(all_comments)
+    return Comment.objects.all()
+
+
+@pytest.fixture
+def form_data():
+    return {
+        'text': 'Новый текст',
+        'created': datetime.today()
+    }
